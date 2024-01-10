@@ -27,8 +27,10 @@ class CryptoListPage extends StatefulWidget {
 class _CryptoListPageState extends State<CryptoListPage>
     with SingleTickerProviderStateMixin {
   List _cryptos = [];
+  List _filteredCryptos = [];
   Set<String> _favorites = {};
   late TabController _tabController;
+  TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -36,11 +38,13 @@ class _CryptoListPageState extends State<CryptoListPage>
     _loadCryptoData();
     _loadFavorites();
     _tabController = TabController(length: 2, vsync: this);
+    _searchController.addListener(_filterCryptos);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -52,6 +56,8 @@ class _CryptoListPageState extends State<CryptoListPage>
 
     setState(() {
       _cryptos = responseBody;
+      _filteredCryptos =
+          responseBody; // Initialize filtered list with all cryptos
     });
   }
 
@@ -59,6 +65,15 @@ class _CryptoListPageState extends State<CryptoListPage>
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       _favorites = Set<String>.from(prefs.getStringList('favorites') ?? []);
+    });
+  }
+
+  void _filterCryptos() {
+    String query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredCryptos = _cryptos.where((crypto) {
+        return crypto['name'].toLowerCase().contains(query);
+      }).toList();
     });
   }
 
@@ -87,14 +102,31 @@ class _CryptoListPageState extends State<CryptoListPage>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          RefreshIndicator(
-            onRefresh: _loadCryptoData,
-            child: _buildCryptoList(),
+          Padding(
+            padding: EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Search Cryptos',
+                border: OutlineInputBorder(),
+                suffixIcon: Icon(Icons.search),
+              ),
+            ),
           ),
-          _buildFavoritesList(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                RefreshIndicator(
+                  onRefresh: _loadCryptoData,
+                  child: _buildCryptoList(),
+                ),
+                _buildFavoritesList(),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -102,9 +134,9 @@ class _CryptoListPageState extends State<CryptoListPage>
 
   Widget _buildCryptoList() {
     return ListView.builder(
-      itemCount: _cryptos.length,
+      itemCount: _filteredCryptos.length,
       itemBuilder: (context, index) {
-        var crypto = _cryptos[index];
+        var crypto = _filteredCryptos[index];
         double change = crypto['price_change_percentage_24h'] ?? 0;
         Color changeColor = change >= 0 ? Colors.green : Colors.red;
         bool isFavorite = _favorites.contains(crypto['id']);
