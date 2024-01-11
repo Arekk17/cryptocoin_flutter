@@ -136,31 +136,34 @@ class _CryptoListPageState extends State<CryptoListPage>
         bool isFavorite = _favorites.contains(crypto['id']);
 
         return ListTile(
-            title: Text(
-              crypto['name'],
-              style: TextStyle(fontWeight: FontWeight.bold),
+          title: Text(
+            crypto['name'],
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(
+            'Aktualna cena: \$${crypto['current_price']}\nZmiana 24h: ${change.toStringAsFixed(2)}%',
+            style: TextStyle(color: changeColor),
+          ),
+          leading: CircleAvatar(
+            backgroundImage: NetworkImage(crypto['image']),
+          ),
+          trailing: IconButton(
+            icon: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: isFavorite ? Colors.red : null,
             ),
-            subtitle: Text(
-              'Aktualna cena: \$${crypto['current_price']}\nZmiana 24h: ${change.toStringAsFixed(2)}%',
-              style: TextStyle(color: changeColor),
-            ),
-            leading: CircleAvatar(
-              backgroundImage: NetworkImage(crypto['image']),
-            ),
-            trailing: IconButton(
-              icon: Icon(
-                isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: isFavorite ? Colors.red : null,
+            onPressed: () => _toggleFavorite(crypto['id']),
+          ),
+          onTap: () async {
+            var historicalData = await loadCryptoHistory(crypto['id']);
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => CryptoDetailPage(
+                    crypto: crypto, historicalData: historicalData),
               ),
-              onPressed: () => _toggleFavorite(crypto['id']),
-            ),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => CryptoDetailPage(crypto: crypto),
-                ),
-              );
-            });
+            );
+          },
+        );
       },
     );
   }
@@ -192,10 +195,12 @@ class _CryptoListPageState extends State<CryptoListPage>
               icon: Icon(Icons.favorite, color: Colors.red),
               onPressed: () => _toggleFavorite(crypto['id']),
             ),
-            onTap: () {
+            onTap: () async {
+              var historicalData = await loadCryptoHistory(crypto['id']);
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => CryptoDetailPage(crypto: crypto),
+                  builder: (context) => CryptoDetailPage(
+                      crypto: crypto, historicalData: historicalData),
                 ),
               );
             });
